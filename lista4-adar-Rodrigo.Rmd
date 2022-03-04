@@ -11,7 +11,14 @@ Lista 4 original foi dividida em duas:
 uma com exercícios tidyr e outra com dplyr
 -->
 
-
+```{r setup, include=FALSE}
+#rm(list = ls())
+knitr::opts_chunk$set(echo = TRUE,
+                      comment = "#>",
+                      prompt = FALSE, 
+                      collapse = TRUE, 
+                      include = TRUE)
+```
 
 ## Pré-requisitos
 
@@ -27,7 +34,7 @@ pacotes <- c(
   "readr",
   "dplyr",
   "hablar",
-  "stringr",
+  "stringr", # desnecessario, ja faz parte do tidyverse
   "tidyverse"
 )
 easypackages::libraries(pacotes)
@@ -77,10 +84,36 @@ soi_arrumado <- as_tibble(soi) %>%
 names(soi_arrumado) <- tolower(names(soi_arrumado))
 soi_arrumado <- soi_arrumado %>% 
   mutate_if(is.character, as.integer)
+# para ordenar voce deveria usar a funcao `arrange()`
+# ensinada no capitulo
 soi_arrumado <- soi_arrumado[order(soi_arrumado$year),]
 glimpse(soi_arrumado)
 ```
 
+> JDT: seu resultado está certo, mas voce não usou a função `arrange()` ensinada 
+neste capítulo. A idéia é usar o aprendido neste capítulo. E a `arrange()` é mais eficiente que a `order()`. Um código usando a pipe e o que foi aprendido no capítulo seria:
+
+```{r}
+soi_arrumado <- pivot_longer(
+  data = soi, 
+  cols = -YEAR,
+  names_to = "mes", 
+  values_to = "soi"
+  ) %>%
+  mutate(mes = as.integer(mes)) %>% 
+  arrange(YEAR, mes) %>%
+  setNames(., tolower(names(.)))  # ou codigo abaixo
+  # rename_with(., tolower)
+  
+glimpse(soi_arrumado)
+```
+
+```{r jdt-correcao1, echo = FALSE, comment="JDT>"}
+# penalizacoes
+p1 <- 0.05
+# nota questão 1
+(nq1 <- 1 - p1)
+```
 
 - - -
 
@@ -103,6 +136,7 @@ prec_arrumada <- as_tibble(precd_ncdf) %>%
     names_to = "date",
     values_to = "prec"
     )
+# desencessario, basta usar as.Date(x, format = "X%Y.%m.%d")
 prec_arrumada <- prec_arrumada %>% 
   mutate(.,
     date = gsub(
@@ -110,14 +144,39 @@ prec_arrumada <- prec_arrumada %>%
     replacement = "",
     x = prec_arrumada$date)
     )
+# para transformar variáveis esperava-se que usasse a mutate()
+# ensinada neste capitulo
 prec_arrumada$date <- as.Date (x = prec_arrumada$date,
                          format = "%Y.%m.%d"
                          )
 prec_arrumada<- prec_arrumada %>% 
+  # evite usar mutate_if, ela tem uma funcao alternativa melhor, a across()
+  # ver ?mutate_if
   mutate_if(is.character, as.double)
 glimpse(prec_arrumada)  
 ```  
  
+>JDT: A idéia dos exercícios no final do capítulo é usar o que foi aprendido naquele capítulo (`mutate()` ao invés de `x$var <- algocom(x$var)`). Abaixo mostro uma alternativa de código mais eficiente. Procure usar funções recomendadas, como `mutate(across(where(is.character), fn))` ao invés de `mutate_*()`.
+
+
+```{r jdt-2}
+precd_arrum <- pivot_longer(
+  data = precd_ncdf, 
+  cols = -c(x, y),
+  names_to = "date",
+  values_to = "prec" 
+  ) %>%
+  mutate(date = as.Date(date, "X%Y.%m.%d"))
+glimpse(precd_arrum)
+```
+
+
+```{r jdt-correcao2, echo = FALSE, comment="JDT>"}
+# penalizacoes
+p2 <- 0.05
+# nota questão 2
+(nq2 <- 1 - p2)
+```
 
 - - -
 
@@ -125,7 +184,7 @@ glimpse(prec_arrumada)
 
 
 ```{r}
-str(poluentes)
+#str(poluentes)
 poluentes_arrumados <- as_tibble(poluentes)%>%
   pivot_wider(.,
     names_from = poluente,
@@ -134,13 +193,20 @@ poluentes_arrumados <- as_tibble(poluentes)%>%
  glimpse(poluentes_arrumados)
 ```
 
+```{r jdt-correcao3, echo = FALSE, comment="JDT>"}
+# penalizacoes
+p3 <- 0
+# nota questão 2
+(nq3 <- 1 - p3)
+```
+
 
 - - -
 
 4. a. Coloque os dados meteorológicos diários da estação meteorológica de Santa Maria no formato arrumado. 
 
 ```{r}
-str(dados_sm)
+#str(dados_sm)
 dados_sm_arrumados <- as_tibble(dados_sm) %>%  
   pivot_longer(.,
   cols = -(id:year),
@@ -150,28 +216,19 @@ dados_sm_arrumados <- as_tibble(dados_sm) %>%
 glimpse(dados_sm_arrumados)
 ```
 
+> Acho que você não entendeu o conceito de [formato arrumado](https://lhmet.github.io/adar-ebook/restrutura%C3%A7%C3%A3o-de-dados-retangulares.html#dados-arrumados). Ou seja, uma variável em cada coluna. `tmax` e `tmin` não estão uma em cada coluna.
 
 ```
-#> # A tibble: 12 x 35
-#>    id    element month  year    d1    d2    d3    d4    d5    d6    d7    d8    d9   d10
-#>    <chr> <chr>   <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl>
-#>  1 83936 tmax        1  2010  32.6  33.4  24.8  29.4  27    24.4  29.6  29.4  29.6  31.8
-#>  2 83936 tmin        1  2010  17.9  21.4  21.6  23.4  23.2  21.8  18    19.4  21.8  22.4
-#>  3 83936 tmax        2  2010  36.8  38.4  32.6  38.6  34    36.4  29.8  31    32.8  33.6
-#>  4 83936 tmin        2  2010  25.4  25    29.6  26.2  25    25.8  25.4  22.2  19.8  17.6
-#>  5 83936 tmax        3  2010  32    32.4  33.6  32.4  32    29.6  30.2  30    31    32.6
-#>  6 83936 tmin        3  2010  18.6  19    20.2  21.6  19.8  18.4  17.3  21.6  20.4  22.2
-#>  7 83936 tmax        4  2010  34.4  28.6  21    24.2  23.4  24    24.6  26    27.6  30.2
-#>  8 83936 tmin        4  2010  17.5  21    20.6  17.6  15    10.8  11.7  11.3  12.7  11.6
-#>  9 83936 tmax        5  2010  27    26.4  20.2  22.8  25.4  17.4  19.6  19.8  17.2  17.4
-#> 10 83936 tmin        5  2010   7.2   7    13    16.2  14.1  11.5  14.4  11     9.9   9  
-#> 11 83936 tmax        6  2010  19.2  23.8  17.2  18.6  21.2  20.2  17.8  15.4  16.2  19  
-#> 12 83936 tmin        6  2010   4.1   8.8   9.1  15.2  11.4   6.1   6.3   7.3   5.6   3.5
-#> # … with 21 more variables: d11 <dbl>, d12 <dbl>, d13 <dbl>, d14 <dbl>, d15 <dbl>,
-#> #   d16 <dbl>, d17 <dbl>, d18 <dbl>, d19 <dbl>, d20 <dbl>, d21 <dbl>, d22 <dbl>,
-#> #   d23 <dbl>, d24 <dbl>, d25 <dbl>, d26 <dbl>, d27 <dbl>, d28 <dbl>, d29 <dbl>,
-#> #   d30 <dbl>, d31 <dbl>
+#> Rows: 186
+#> Columns: 6
+#> $ id    <chr> "83936", "83936", "83936", "83936", "83936", "83936", "83936", "…
+#> $ month <dbl> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1…
+#> $ year  <dbl> 2010, 2010, 2010, 2010, 2010, 2010, 2010, 2010, 2010, 2010, 2010…
+#> $ day   <dbl> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 1…
+#> $ tmax  <dbl> 32.6, 33.4, 24.8, 29.4, 27.0, 24.4, 29.6, 29.4, 29.6, 31.8, 31.2…
+#> $ tmin  <dbl> 17.9, 21.4, 21.6, 23.4, 23.2, 21.8, 18.0, 19.4, 21.8, 22.4, 22.4…
 ```
+
 
    b. Deixe os dados ordenados cronologicamente e obtenha as variáveis com nomes e ordem conforme mostrado na estrutura de dados esperada.
 
@@ -196,11 +253,22 @@ dados_met_sm_arrumados <- dados_met_sm_arrumados %>%
     day = gsub(
     pattern = "d",
     replacement = '' ,
-    x = dados_met_sm_arrumados$day) 
+    x = dados_met_sm_arrumados$day)  # desnecessario uso de $ dentro do mudate
+    #x = day)
     )
 dados_met_sm_arrumados <- dados_met_sm_arrumados %>% select(id, year, everything())
 glimpse(dados_met_sm_arrumados)
 ```
+
+> Faltou converter `day` para `integer`como no gabarito. E você não se certificou de que os dados estão cronologicamente ordenados. O que poderia ser feito com `arrange()`:
+
+```{r}
+dados_met_sm_arrumados_ <- dados_met_sm_arrumados %>%
+  mutate(day = as.integer(day)) %>%
+  arrange(year, month, day) 
+glimpse(dados_met_sm_arrumados_)
+```
+
 
    c. Acrescente uma nova variável `tmed` aos dados de temperatura diária arrumados, obtida da média diária da `tmax` e `tmin`.
 
@@ -211,6 +279,10 @@ dados_sm_tmed <- dados_met_sm_arrumados %>%
 glimpse(dados_sm_tmed)
 ```
 
+```{r jdt-correcao4, echo = FALSE, comment = "JDT>"}
+p4 <- (1 * 1/3) + (0.1 * 1/3)  
+(nq4 <- 1 - p4)
+```
 
 - - -
 
@@ -236,19 +308,26 @@ data_sm <- unite(
   col = data, ano, mes, dia,
   sep = "/")
 data_sm
-data_sm <- as.Date(data_sm$data)
+data_sm <- as.Date(data_sm$data) # erro ao sobrescrever a tabela de dados
 glimpse(data_sm)
 ```
+
+> JDT: o esperado era uma nova variável (coluna dentro da tabela de dados) chamada `data` da classe `Date`. Você criou um vetor de datas.
 
    c. Filtre os dados obtidos em **(b)** de forma a descobrir as datas em que as observações de `tmax` ou `tmin` são faltantes. Mostre o **`tibble`** filtrado com as datas e explique o porquê de seus valores. *DICA: quantas observações são esperadas por ano?*. 
 
 ```{r}
-dados_sm_filt <- col_dados_tmed 
+dados_sm_filt <- col_dados_tmed  # os dados de b seriam o data_sm!
 dados_sm_filt %>%
   filter(., is.na(tmax) | is.na(tmin)) %>%
   select(., ano, mes, dia)
 ```
+> JDT: e a explicação?
 
+```{r jdt-correcao5, echo = FALSE, comment = "JDT>"}
+p5 <- 2*1/3
+(nq5 <- 1 - p5)
+```
 
 - - -
 
@@ -283,6 +362,46 @@ est_sup <- as_tibble(dados_zorra) %>%
 glimpse(est_sup)
 ```
 
+```{r jdt-correcao6, echo = FALSE, comment = "JDT>"}
+p6 <- 2/3
+(nq6 <- 1 - p6)
+```
+
+
+
+> Essa questão requer a aplicação de várias funções vistas ao longo do curso.
+
+```{r jdt-resp6}
+# solução
+dados_zorra %>%
+  # variaáveis (nome.hora) em uma coluna, valores em outra
+  pivot_longer(.,
+               cols = -date,
+               names_to = "variavel",
+               values_to = "valor"
+               ) %>%
+  # variaveis em uma coluna, valores em outra
+  separate(
+    .,
+    col = variavel,
+    into = c("varname", "hora")
+    ) %>% 
+  mutate(.,
+         hora = ifelse(
+           nchar(hora) >= 3,
+           as.numeric(hora)/100, # 1200 --> 12
+           as.numeric(hora) # 0
+           ),
+         hora = paste0(hora, ":00:00"), # como não tem segundos e a POSIX requer esta info
+         date = as.Date(date, "%d-%m-%Y")
+         ) %>%
+  unite(., col = date, date, hora, sep = " ") %>%
+  mutate(., date = as.POSIXct(date)) %>%
+  pivot_wider(
+    names_from = varname, 
+    values_from = valor
+    )
+```
 
 - - -
 
@@ -303,7 +422,7 @@ $ duracao  <chr> "1h", "1h", "8h"
 ```
 ```{r}
 poluentes <- poluentes %>% 
-  rename(., "id" = estacao)
+  rename(., "id" = "estacao")
 est_pol <- inner_join(
   x = estacoes,
   y = poluentes,
@@ -311,6 +430,11 @@ est_pol <- inner_join(
 glimpse(est_pol)
 ```
 
+
+```{r jdt-correcao7, echo = FALSE, comment = "JDT>"}
+p7 <- 0
+(nq7 <- 1 - p7)
+```
 
 - - -
 
@@ -341,8 +465,15 @@ tab_result <- right_join(
   by = "date")
 #tab_result
 tab_result <- tab_result %>%
-  arrange(., desc(date))
+  arrange(., desc(date)) # sem desc()
 glimpse(tab_result)
+```
+
+> JDT: Faltou a ordem cronológica, ou seja da menor data para a maior.
+
+```{r jdt-correcao8, echo = FALSE, comment = "JDT>"}
+p8 <- 0.05
+(nq8 <- 1 - p8)
 ```
 
 
@@ -352,19 +483,57 @@ glimpse(tab_result)
 
 ```{r}
 
-str(dados_rs_08_16)
+#str(dados_rs_08_16)
 dados_rs_site <- dados_rs_08_16 %>%
    group_by(., site) %>%
    summarise(.,
      inicio = date[which.min(date)],
       final = date[which.max(date)],
-         period = n()/8784,
+         period = n()/8784, # TODOS ANOS TEM 366 dias? NÃO!
          .group = 'drop')
 dados_data_ifp <- dados_rs_site %>%
    arrange(., desc(site))
 glimpse(dados_data_ifp)
 ```
 
+> Faltou precisão no seus cálculos. Note a diferença abaixo.
+
+
+```{r jdt-correcao9, echo = FALSE, comment = "JDT>"}
+p9 <- 1/3
+(nq9 <- 1 - p9)
+```
+
+
+```{r check-9}
+por_ano <- dados_rs_08_16 %>% 
+  #filter(site == "A899") %>%
+  select(site, date) %>%
+  group_by(site, year = year(date)) %>%
+  summarise(
+    inicio = min(date),
+    fim = max(date),
+    #periodo = as.vector((fim - inicio)/365.25)
+    fracao_dias_com_obs = n()/24, #
+    dias_calendario = ifelse(unique(year(date)) %% 4 == 0, 366, 365), 
+    periodo = fracao_dias_com_obs/dias_calendario,
+    intervalo = time_length(interval(inicio, fim), "year"),
+    .groups = "drop"
+    ) 
+por_site <- por_ano %>%
+  group_by(site) %>%
+ summarise(inicio = min(inicio), 
+           fim = max(fim), 
+           dias_com_obs = sum(fracao_dias_com_obs), 
+           dias_calendario = sum(dias_calendario),
+           periodo = round(sum(periodo), 2),
+           periodo_interv = round(sum(intervalo), 2),
+           .groups = "drop"
+           ) 
+glimpse(por_site)
+# qualquer metodo estaria correto, pois teriam mesmo resultado
+select(por_site, inicio, fim, periodo, periodo_interv)
+```
 
 - - -
 
@@ -374,16 +543,26 @@ glimpse(dados_data_ifp)
 str(dados_rs_08_16)
 dados_validos  <- function(col)
   as.integer(sum(!is.na(col)) / n() * 100)
+  #! melhor
+  #mean(!is.na(x)) * 100
+
 dados_rs_08_16 %>%
   group_by(site) %>%
   summarise(across(tair:ws, dados_validos))
 ```
+>JDT: Muito bom!
 
+```{r jdt-correcao10, echo = FALSE, comment = "JDT>"}
+p10 <- 0
+(nq10 <- 1 - p10)
+```
 
 - - -
 
 11. Com o resultado da questão anterior, adicione uma variável indicativa da porcentagem média de observações válidas de todas variáveis. Ordene esta tabela em ordem decrescente da disponibilidade média de observações. 
-  
+
+> JDT: como dito na questão use os dados da questão anterior, o que implica em salvar os dados da questão anterior em uma variável para reusá-la. Evite repetir código desnecessáriamente. Para que reescrever uma função com nome diferente mas que tem o mesmo código da função na questão anterior?
+
 ```{r}
 dados_per <- function(col)
   as.integer(sum(!is.na(col)) / n() * 100)
@@ -395,7 +574,10 @@ dados_per <- dados_rs_08_16 %>%
   arrange(dados_per, desc(disp_med))
 ```
 
-
+```{r jdt-correcao11, echo = FALSE, comment = "JDT>"}
+p11 <- 0.1
+(nq11 <- 1 - p11)
+```
 
 
 
@@ -415,11 +597,15 @@ dados_rs_08_16 %>%
   select(site, date, tair) %>%
   group_by(hour = hour(date)) %>%
   summarise(tair_med = mean(tair, na.rm = TRUE),
-            tair_disp = sum(!is.na(tair)) / n() * 100) %>% 
+            tair_disp = sum(!is.na(tair)) / n() * 100) %>%  #do not repeat yourself , pq nao usou a dados_validos()?
   ungroup() %>%
   glimpse()
 ```
 
+```{r jdt-correcao12, echo = FALSE, comment = "JDT>"}
+p12 <- 0
+(nq12 <- 1 - p12)
+```
 
 
 - - -
@@ -455,6 +641,8 @@ glimpse(tail(obs_validos))
 b.
 ```{r}
 tair_ema_sm <- tair_ema_sm  %>% 
+    #! FALTOU LER COM ATENÇÃO 'A partir destes dados (b) obtenha a frequência de ocorrência ...'
+  # inner_join(mutate(dias_completos, dia = floor_date(dia, unit = "day"))) %>%
   mutate(., hora = hour(date)) 
 
 freqtmin <- tair_ema_sm  %>% 
@@ -474,6 +662,17 @@ freqtmin_decres <-  freqtmin %>%
   arrange(., desc(n))
 glimpse(freqtmin_decres)
 ```
+
+
+> Faltou usar datas completas na (b), descomente código para ver a diferença.
+
+
+```{r jdt-correcao13, echo = FALSE, comment = "JDT>"}
+p13 <- 2/3
+(nq13 <- 1 - p13)
+```
+
+
 - - -
 
 14. Neste exercício aplicaremos um controle de qualidade básico de dados meteorológicos. Você irá verificar se nos dados da EMA de Santa Maria (A803, mesmos dados do item **a** do exercício anterior) ocorreram casos em que a temperatura máxima (mínima) diária foi acima (abaixo) dos recordes históricos registrados pela estação meteorológica convencional do INMET de Santa Maria (site 83936). Os recordes históricos de temperatura máxima e mínima estão disponíveis nos dados `recordes_temp` para cada mês do ano. Você deve obter os casos suspeitos na estrutura conforme abaixo.
@@ -535,7 +734,21 @@ glimpse(casos_susp)
 
 
 
+```{r jdt-correcao14, echo = FALSE, comment = "JDT>"}
+p14 <- 0
+(nq14 <- 1 - p14)
+```
 
+
+```{r jdt-nota-final, comment = "JDT>", echo=FALSE}
+# requer conexão de internet
+source("https://gist.githubusercontent.com/lhmet/3ddfc43bcf796c81ecfd9bb93f5f5dc2/raw/b489a6bb4d948472afa5068256b7869a7997e109/aux-funs-list-correction")
+coleta_notas
+# verificação de autoria
+nota <- round((sum(coleta_notas)/length(coleta_notas) * 10), 1)
+message("Nota: ", nota)
+
+```
 
 
 
